@@ -50,18 +50,22 @@ import CredentialsManager from '@/components/CredentialsManager';
 import ReportsManager from '@/components/ReportsManager';
 import ClientDetailsModal from '@/components/ClientDetailsModal';
 
-// Get base portal URL for Vercel deployment
-function getBasePortalUrl(): string {
+// Portal domain configuration
+const PORTAL_DOMAINS = {
+  student: 'https://student.learnova.training',
+  coordinator: 'https://tc.learnova.training',
+  sales: 'https://sales.learnova.training',
+};
+
+// Get base portal URL for student/learner dashboard
+function getStudentPortalUrl(companySlug?: string): string {
   if (typeof window !== 'undefined') {
     const host = window.location.host;
-    if (host.includes('vercel.app')) {
-      return `https://koenig-learner-portal.vercel.app`;
-    }
     if (host.includes('localhost')) {
-      return 'http://localhost:3000';
+      return companySlug ? `http://localhost:3000?company=${companySlug}` : 'http://localhost:3000';
     }
   }
-  return 'https://koenig-learner-portal.vercel.app';
+  return companySlug ? `${PORTAL_DOMAINS.student}?company=${companySlug}` : PORTAL_DOMAINS.student;
 }
 
 export default function SalesDashboard() {
@@ -157,7 +161,7 @@ export default function SalesDashboard() {
         updatedAt: new Date().toISOString(),
         createdBy: currentSalesPerson.id,
         salesPerson: currentSalesPerson.name,
-        portalUrl: `${getBasePortalUrl()}?company=${config.slug}`,
+        portalUrl: getStudentPortalUrl(config.slug),
       };
       setCompanies(prev => [...prev, newClient]);
       showToast(`${newClient.name} created successfully!`);
@@ -215,8 +219,7 @@ export default function SalesDashboard() {
 
   // Open portal in new tab
   const openPortal = (company: Company) => {
-    const baseUrl = getBasePortalUrl();
-    const url = `${baseUrl}?company=${company.slug}`;
+    const url = getStudentPortalUrl(company.slug);
     window.open(url, '_blank');
   };
 

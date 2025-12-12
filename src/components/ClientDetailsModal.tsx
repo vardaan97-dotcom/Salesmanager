@@ -36,19 +36,32 @@ interface ClientDetailsModalProps {
   onViewReports: () => void;
 }
 
-// Get base portal URL
-function getBasePortalUrl(): string {
+// Portal domain configuration
+const PORTAL_DOMAINS = {
+  student: 'https://student.learnova.training',
+  coordinator: 'https://tc.learnova.training',
+  sales: 'https://sales.learnova.training',
+};
+
+// Get portal URL based on role
+function getPortalUrl(role: 'admin' | 'coordinator' | 'learner', companySlug: string): string {
   if (typeof window !== 'undefined') {
     const host = window.location.host;
-    if (host.includes('vercel.app')) {
-      // Extract the base vercel URL and point to learner portal
-      return `https://koenig-learner-portal.vercel.app`;
-    }
     if (host.includes('localhost')) {
-      return 'http://localhost:3000';
+      return `http://localhost:3000?company=${companySlug}&role=${role}`;
     }
   }
-  return 'https://koenig-learner-portal.vercel.app';
+  // Use production domains
+  switch (role) {
+    case 'learner':
+      return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+    case 'coordinator':
+      return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}`;
+    case 'admin':
+      return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}&role=admin`;
+    default:
+      return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+  }
 }
 
 export default function ClientDetailsModal({
@@ -62,13 +75,11 @@ export default function ClientDetailsModal({
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const baseUrl = getBasePortalUrl();
-
-  // Generate portal URLs
+  // Generate portal URLs using proper domains
   const portalUrls = {
-    admin: `${baseUrl}?company=${company.slug}&role=admin`,
-    coordinator: `${baseUrl}?company=${company.slug}&role=coordinator`,
-    learner: `${baseUrl}?company=${company.slug}&role=learner`,
+    admin: getPortalUrl('admin', company.slug),
+    coordinator: getPortalUrl('coordinator', company.slug),
+    learner: getPortalUrl('learner', company.slug),
   };
 
   // Generate credentials

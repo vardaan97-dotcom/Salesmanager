@@ -34,20 +34,55 @@ interface UserCredentials {
   name: string;
 }
 
-// Get the base URL for portals (use Vercel URL in production)
-function getBasePortalUrl(): string {
-  // In production, this would be configured via environment variables
+// Portal domain configuration
+const PORTAL_DOMAINS = {
+  student: 'https://student.learnova.training',
+  coordinator: 'https://tc.learnova.training',
+  sales: 'https://sales.learnova.training',
+};
+
+// Get the base URL for portals based on role
+function getPortalUrl(role: 'admin' | 'coordinator' | 'learner', companySlug: string): string {
+  // In production, use the actual domains
   if (typeof window !== 'undefined') {
-    // Use current domain for demo purposes
     const host = window.location.host;
-    if (host.includes('vercel.app')) {
-      return `https://${host}`;
+
+    // If running on actual domains, use them
+    if (host.includes('learnova.training')) {
+      switch (role) {
+        case 'learner':
+          return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+        case 'coordinator':
+          return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}`;
+        case 'admin':
+          return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}&role=admin`;
+        default:
+          return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+      }
     }
+
+    // For development/localhost
     if (host.includes('localhost')) {
-      return 'http://localhost:3000';
+      return `http://localhost:3000?company=${companySlug}&role=${role}`;
+    }
+
+    // For Vercel preview deployments, still use the production domains
+    if (host.includes('vercel.app')) {
+      switch (role) {
+        case 'learner':
+          return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+        case 'coordinator':
+          return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}`;
+        case 'admin':
+          return `${PORTAL_DOMAINS.coordinator}?company=${companySlug}&role=admin`;
+        default:
+          return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
+      }
     }
   }
-  return 'https://koenig-learner.vercel.app';
+
+  // Default fallback to production domains
+  return `${PORTAL_DOMAINS.student}?company=${companySlug}`;
 }
 
 export default function CredentialsManager({ company, onClose }: CredentialsManagerProps) {
@@ -56,30 +91,28 @@ export default function CredentialsManager({ company, onClose }: CredentialsMana
   const [copied, setCopied] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
 
-  const baseUrl = getBasePortalUrl();
-
-  // Generate credentials for different user types
+  // Generate credentials for different user types with proper portal URLs
   const credentials: Record<string, UserCredentials> = {
     admin: {
       role: 'admin',
       name: 'Company Admin',
       email: company.adminEmail || `admin@${company.slug}.com`,
       password: `Admin${company.slug.charAt(0).toUpperCase()}${company.slug.slice(1)}2024!`,
-      portalUrl: `${baseUrl}?company=${company.slug}&role=admin`,
+      portalUrl: getPortalUrl('admin', company.slug),
     },
     coordinator: {
       role: 'coordinator',
       name: 'Training Coordinator',
       email: `coordinator@${company.slug}.com`,
       password: `Train${company.slug.charAt(0).toUpperCase()}${company.slug.slice(1)}2024!`,
-      portalUrl: `${baseUrl}?company=${company.slug}&role=coordinator`,
+      portalUrl: getPortalUrl('coordinator', company.slug),
     },
     learner: {
       role: 'learner',
       name: 'Student/Learner',
       email: `learner@${company.slug}.com`,
       password: `Learn${company.slug.charAt(0).toUpperCase()}${company.slug.slice(1)}2024!`,
-      portalUrl: `${baseUrl}?company=${company.slug}&role=learner`,
+      portalUrl: getPortalUrl('learner', company.slug),
     },
   };
 
