@@ -117,6 +117,25 @@ export default function ClientCustomizer({ client, onClose, onSave }: ClientCust
 
   const handleSave = () => {
     onSave(config);
+
+    // Publish changes to learner portal via localStorage for real-time sync
+    const learnerConfig = {
+      companyId: client?.id || `${config.slug}-${Date.now()}`,
+      slug: config.slug,
+      name: config.name,
+      branding: config.branding,
+      features: config.features,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Store in localStorage for cross-tab communication
+    localStorage.setItem('koenig_learner_config', JSON.stringify(learnerConfig));
+
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent('learner-config-update', {
+      detail: learnerConfig
+    }));
+
     setShowCredentials(true);
   };
 
